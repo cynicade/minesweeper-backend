@@ -13,6 +13,8 @@ function getMinePlacement(sizeX: number, sizeY: number, mines: number): Array<Mi
   let coordY: number;
   let mineCoords: Mine;
 
+  // didn't work with map, or Array.includes() for some weird javascript reason
+  // this way worked and now I'm scared to change it
   const inMineArr = (tuple: Mine): boolean => {
     for (let i = 0; i < mineArr.length; ++i) {
       if (mineArr[i].coordX === tuple.coordX && mineArr[i].coordY === tuple.coordY) return true;
@@ -35,37 +37,24 @@ function getMinePlacement(sizeX: number, sizeY: number, mines: number): Array<Mi
 /**
  * Get the appropriate value of the cell's counter field
  * @param  {Cell[][]} cells minesweeper board cells
- * @param  {number} coordX  the cell's x coordinate
- * @param  {number} coordY  the cell's y coordinate
- * @return {number}         the cell's counter
+ * @param  {number} x the cell's x coordinate
+ * @param  {number} y the cell's y coordinate
+ * @return {number}   the cell's counter
  */
-function getCellCounter(cells: Array<Array<Cell>>, coordX: number, coordY: number): number {
-  // TODO: jesus christ fix this
+function getCellCounter(cells: Array<Array<Cell>>, x: number, y: number): number {
   let counter = 0;
-  if (coordY - 1 >= 0) {
-    if (cells[coordY - 1][coordX].mine) counter++;
+  for (let i = x - 1; i < x + 2; ++i) {
+    for (let j = y - 1; j < y + 2; ++j) {
+      if (
+        i >= 0 &&
+        j >= 0 &&
+        i < cells[0].length &&
+        j < cells.length
+      ) {
+        if (cells[j][i].mine) counter++
+      }
+    }
   }
-  if (coordY + 1 < cells.length) {
-      if (cells[coordY + 1][coordX].mine) counter++;
-    }
-    if (coordX + 1 < cells.length) {
-      if (cells[coordY][coordX + 1].mine) counter++;
-      if (coordY - 1 >= 0) {
-        if (cells[coordY - 1][coordX + 1].mine) counter++;
-      }
-      if (coordY + 1 < cells.length) {
-        if (cells[coordY + 1][coordX + 1].mine) counter++;
-      }
-    }
-    if (coordX - 1 >= 0) {
-      if (cells[coordY][coordX - 1].mine) counter++;
-      if (coordY - 1 >= 0) {
-        if (cells[coordY - 1][coordX - 1].mine) counter++;
-      }
-      if (coordY + 1 < cells.length) {
-        if (cells[coordY + 1][coordX - 1].mine) counter++;
-      }
-    }
 
     return counter;
 }
