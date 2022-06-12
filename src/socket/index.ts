@@ -9,7 +9,7 @@ function handleConnection(socket: Socket): void {
     socket.emit("new_grid", makeGrid(diff));
   });
   socket.on("disconnect", (reason) => {
-    console.log("disconnected" + reason);
+    // clear socket stuff from db
   });
 }
 
