@@ -1,7 +1,7 @@
 import { Server, Socket } from "socket.io";
 import { makeGrid } from "../utils/makeGrid";
 
-export const io = new Server({ cors: { origin: "*" }, path: "/api/socket" });
+export const io = new Server({ cors: { origin: "*" }, path: "/socket" });
 
 function handleConnection(socket: Socket): void {
   console.log(socket.id);
