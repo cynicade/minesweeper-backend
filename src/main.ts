@@ -11,6 +11,9 @@ const allowOrigin = (): string =>
     ? "http://localhost:3000"
     : "https://cynicade.xyz/minesweeper";
 
+const socketPath = (): string =>
+  process.env.NODE_ENV === "dev" ? "/socket" : "/minesweeper/api/socket";
+
 app.use(
   cors({
     origin: allowOrigin(),
@@ -21,7 +24,7 @@ httpServer.listen(process.env.PORT, () => {
   console.log("listening on", httpServer.address());
 });
 export const io = new Server(httpServer, {
-  path: "/socket",
+  path: socketPath(),
   cors: {
     origin: allowOrigin(),
   },
