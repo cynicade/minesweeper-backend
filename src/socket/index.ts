@@ -1,9 +1,7 @@
-import { Server, Socket } from "socket.io";
+import { Socket } from "socket.io";
 import { makeGrid } from "../utils/makeGrid";
 
-export const io = new Server({ cors: { origin: "*" }, path: "/socket" });
-
-function handleConnection(socket: Socket): void {
+export function handleConnection(socket: Socket): void {
   console.log(socket.id);
   socket.on("request_grid", (diff) => {
     socket.emit("new_grid", makeGrid(diff));
@@ -12,5 +10,3 @@ function handleConnection(socket: Socket): void {
     // clear socket stuff from db
   });
 }
-
-io.on("connection", handleConnection);
