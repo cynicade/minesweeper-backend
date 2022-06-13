@@ -22,6 +22,7 @@
     "start": "NODE_ENV=prod node ./dist/main.js",
     "dev": "NODE_ENV=dev npx nodemon ./src/main.ts",
     "build": "npx tsc",
+    "dockerize": "docker build . -t cynicade/minesweeper-backend",
     "test": "echo 'test command not configured'"
   }
 }
