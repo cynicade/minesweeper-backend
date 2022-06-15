@@ -4,6 +4,8 @@ import cors from "cors";
 import { createServer } from "http";
 import { Server } from "socket.io";
 import { handleConnection } from "./socket/index";
+import { client } from "./redis";
+import { router } from "./routes";
 
 const app = express();
 const allowOrigin = (): string =>
@@ -19,14 +21,22 @@ app.use(
     origin: allowOrigin(),
   })
 );
+
+app.use("/api", router);
+
 const httpServer = createServer(app);
 httpServer.listen(process.env.PORT, () => {
   console.log("listening on", httpServer.address());
 });
+
 export const io = new Server(httpServer, {
   path: socketPath(),
   cors: {
     origin: allowOrigin(),
   },
 });
+
+// redis connection
+client.connect();
+// socket connection
 io.on("connection", handleConnection);

@@ -60,11 +60,11 @@ function getCellCounter(cells: Array<Array<ICell>>, x: number, y: number): numbe
 }
 
 /**
- * Generate random coordinates for the supplied number of mines
+ * Generate a minesweeper board
  * @param  {Difficulty} diff the game difficulty setting
  * @return {IGrid}       minesweeper board
  */
-export function makeGrid(diff: Difficulty): IGrid {
+export default function makeGrid(diff: Difficulty): IGrid {
   let sizeX;
   let sizeY;
   let mines;
