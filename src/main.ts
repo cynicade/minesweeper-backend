@@ -21,6 +21,7 @@ app.use(
     origin: allowOrigin(),
   })
 );
+app.use(express.json());
 
 app.use("/api", router);
 

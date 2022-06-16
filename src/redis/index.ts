@@ -27,7 +27,7 @@ export async function addMemberToRoom(
     name,
     socketId,
     score: 0,
-    ready: false,
+    ready: 0,
   });
   return name;
 }
@@ -49,6 +49,22 @@ export async function incrMemberScore(
   let idx: number;
   typeof idxDirty === "number" ? (idx = idxDirty) : (idx = idxDirty[0]);
   await client.json.numIncrBy(`room:${roomId}`, `.members[${idx}].score`, 1);
+}
+
+export async function setMemeberReady(
+  roomId: string,
+  socketId: string,
+  ready: boolean
+): Promise<void> {
+  const idxDirty: number | number[] = await client.json.arrIndex(
+    `room:${roomId}`,
+    ".members",
+    socketId
+  );
+  let idx: number;
+  const flag = ready ? 1 : -1;
+  typeof idxDirty === "number" ? (idx = idxDirty) : (idx = idxDirty[0]);
+  await client.json.numIncrBy(`room:${roomId}`, `.members[${idx}].ready`, flag);
 }
 
 export async function removeMemberFromRoom(roomId: string, socketId: string) {

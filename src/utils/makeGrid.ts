@@ -114,5 +114,5 @@ export default function makeGrid(diff: Difficulty): IGrid {
     }
   }
 
-  return {sizeX,sizeY, mines, cells};
+  return {sizeX, sizeY, mines, cells};
 }
