@@ -12,6 +12,7 @@ router.get("/checkRoom/:roomId", async (req, res) => {
 });
 
 router.get("/members/:roomId", async (req, res) => {
+  console.log(req.params.roomId);
   const exists = await roomExists(req.params.roomId);
   if (exists) {
     const data = await getAllMemberData(req.params.roomId);
@@ -26,10 +27,9 @@ router.get("/members/:roomId", async (req, res) => {
 
 router.post("/grid", (req, res) => {
   // TODO: validate difficulty
-  console.log(req.body);
   res.send(JSON.stringify({ grid: makeGrid(req.body.difficulty) })).status(200);
 });
 
-router.post("/add/:roomId", (req, res) => {
+router.get("/add/:roomId", (req, res) => {
   addMemberToRoom(req.params.roomId, "testing").then(() => res.sendStatus(200));
 });

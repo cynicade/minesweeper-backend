@@ -8,17 +8,14 @@ export function handleConnection(socket: Socket): void {
   socket.on("request_grid", (diff) => {
     socket.emit("new_grid", makeGrid(diff));
   });
-  socket.on("request_new_room", (diff: Difficulty) => {
-    createRoom(diff).then((roomId) => {
-      addMemberToRoom(roomId, socket.id).then(() =>
-        socket.emit("new_room", roomId)
-      );
-    });
+  socket.on("request_new_room", async (diff: Difficulty) => {
+    const roomId = await createRoom(diff);
+    await addMemberToRoom(roomId, socket.id);
+    socket.emit("new_room", roomId);
   });
-  socket.on("join_room", (roomId: string) => {
-    addMemberToRoom(roomId, socket.id).then(() =>
-      socket.emit("new_room", roomId)
-    );
+  socket.on("join_room", async (roomId: string) => {
+    await addMemberToRoom(roomId, socket.id);
+    socket.emit("new_room", roomId);
   });
   socket.on("leave_room", (roomId: string) => {
     removeMemberFromRoom(roomId, socket.id);

@@ -37,6 +37,12 @@ export async function getAllMemberData(roomId: string): Promise<any> {
   return await client.json.get(`room:${roomId}`, { path: ".members" });
 }
 
+export async function checkMembersReady(roomId: string): Promise<boolean> {
+  const data = await client.json.get(`room:${roomId}`, { path: ".members" });
+  console.log(data);
+  return true;
+}
+
 export async function incrMemberScore(
   roomId: string,
   socketId: string
