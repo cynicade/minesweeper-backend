@@ -1,6 +1,6 @@
 import { createClient } from "redis";
-import { Difficulty, IMember } from "../types";
-import { makeId, makeRandomName } from "../utils";
+import { Difficulty, IGrid, IMember } from "../types";
+import { makeGrid, makeId, makeRandomName } from "../utils";
 
 export const client: ReturnType<typeof createClient> = createClient({
   url: process.env.REDIS_URL,
@@ -9,12 +9,47 @@ export const client: ReturnType<typeof createClient> = createClient({
 
 client.on("error", (err) => console.error("redis client error", err));
 
+async function updateRoom(
+  roomId: string,
+  newMembers: Array<IMember>,
+  newGrid?: IGrid
+): Promise<Array<IMember>> {
+  const difficulty = (await client.json.get(`room:${roomId}`, {
+    path: ".difficulty",
+  })) as unknown as Difficulty; // this is horrible, but the Redis library for node is horribly typed :')
+
+  if (!newGrid) {
+    const grid = (await client.json.get(`room:${roomId}`, {
+      path: ".grid",
+    })) as unknown as IGrid;
+
+    const updatedObject = JSON.stringify({
+      difficulty,
+      grid,
+      members: newMembers,
+    });
+    await client.json.set(`room:${roomId}`, ".", JSON.parse(updatedObject));
+  } else {
+    const updatedObject = JSON.stringify({
+      difficulty,
+      grid: newGrid,
+      members: newMembers,
+    });
+    await client.json.set(`room:${roomId}`, ".", JSON.parse(updatedObject));
+  }
+
+  // Doesn't work otherwise...
+  return await getAllMemberData(roomId);
+}
+
 export async function createRoom(diff: Difficulty): Promise<string> {
   const id = makeId(5);
-  await client.json.set(`room:${id}`, ".", {
+  const roomObject = JSON.stringify({
     difficulty: diff,
+    grid: makeGrid(diff),
     members: [],
   });
+  await client.json.set(`room:${id}`, ".", JSON.parse(roomObject));
   return id;
 }
 
@@ -52,30 +87,23 @@ export async function incrMemberScore(
   roomId: string,
   socketId: string
 ): Promise<void> {
-  const idxDirty: number | number[] = await client.json.arrIndex(
-    `room:${roomId}`,
-    ".members",
-    socketId
-  );
-  let idx: number;
-  typeof idxDirty === "number" ? (idx = idxDirty) : (idx = idxDirty[0]);
+  const members = await getAllMemberData(roomId);
+  const idx = members.findIndex((member) => member.socketId === socketId);
   await client.json.numIncrBy(`room:${roomId}`, `.members[${idx}].score`, 1);
 }
 
-export async function setMemeberReady(
+export async function toggleMemberReady(
   roomId: string,
-  socketId: string,
-  ready: boolean
+  socketId: string
 ): Promise<void> {
-  const idxDirty: number | number[] = await client.json.arrIndex(
-    `room:${roomId}`,
-    ".members",
-    socketId
-  );
-  let idx: number;
-  const flag = ready ? 1 : -1;
-  typeof idxDirty === "number" ? (idx = idxDirty) : (idx = idxDirty[0]);
-  await client.json.numIncrBy(`room:${roomId}`, `.members[${idx}].ready`, flag);
+  const members = await getAllMemberData(roomId);
+  const updatedMembers = members.map((member) => {
+    if (member.socketId === socketId)
+      return { ...member, ready: !member.ready };
+    else return member;
+  });
+
+  await updateRoom(roomId, updatedMembers);
 }
 
 export async function removeMemberFromRoom(roomId: string, socketId: string) {
@@ -93,22 +121,26 @@ export async function removeMemberFromRoom(roomId: string, socketId: string) {
   }
 }
 
-export async function replaceMemberArray(
-  roomId: string,
-  members: Array<IMember>
-): Promise<Array<IMember>> {
-  const difficulty = (await client.json.get(`room:${roomId}`, {
-    path: ".difficulty",
-  })) as unknown as Difficulty; // this is horrible, but the Redis library for node is horribly typed :')
-
-  const updatedObject = JSON.stringify({ difficulty, members });
-
-  // Doesn't work otherwise...
-  await client.json.set(`room:${roomId}`, ".", JSON.parse(updatedObject));
-  return await getAllMemberData(roomId);
-}
-
 export async function roomExists(roomId: string): Promise<boolean> {
   // .exists() returns 0 or 1, so coercing into a boolean makes it True|False
   return Boolean(await client.exists(`room:${roomId}`));
+}
+
+export async function resetReadyAndGrid(roomId: string) {
+  const members = await getAllMemberData(roomId);
+  const updatedMembers = members.map((member) => {
+    return { ...member, ready: false };
+  });
+  const difficulty = (await client.json.get(`room:${roomId}`, {
+    path: ".difficulty",
+  })) as unknown as Difficulty;
+  const newGrid = makeGrid(difficulty);
+
+  await updateRoom(roomId, updatedMembers, newGrid);
+}
+
+export async function getGrid(roomId: string): Promise<IGrid> {
+  return (await client.json.get(`room:${roomId}`, {
+    path: ".grid",
+  })) as unknown as IGrid;
 }

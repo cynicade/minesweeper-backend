@@ -4,15 +4,18 @@ import {
   addMemberToRoom,
   createRoom,
   getAllMemberData,
+  getGrid,
+  incrMemberScore,
   removeMemberFromRoom,
-  replaceMemberArray,
+  resetReadyAndGrid,
+  toggleMemberReady,
 } from "../redis";
 import { Difficulty } from "../types";
 
 export function handleConnection(socket: Socket): void {
   console.log(socket.id);
-  socket.on("request_grid", (diff) => {
-    socket.emit("new_grid", makeGrid(diff));
+  socket.on("request_grid", async (roomId: string) => {
+    socket.emit("new_grid", await getGrid(roomId));
   });
 
   socket.on("request_new_room", async (diff: Difficulty) => {
@@ -37,19 +40,21 @@ export function handleConnection(socket: Socket): void {
   });
 
   socket.on("player_toggle_ready", async (roomId: string) => {
+    await toggleMemberReady(roomId, socket.id);
     const members = await getAllMemberData(roomId);
-    const updatedMembers = members.map((member) => {
-      if (member.socketId === socket.id)
-        return { ...member, ready: !member.ready };
-      else return member;
-    });
+    socket.to(roomId).emit("member_state_changed", members); // emit to all sockets in the (socket) room except the sender
+    socket.emit("member_state_changed", members); // emit to the sender
+  });
 
-    const membersAfterReplace = await replaceMemberArray(
-      roomId,
-      updatedMembers
-    );
-    socket.to(roomId).emit("member_state_changed", membersAfterReplace); // emit to all sockets in the (socket) room except the sender
-    socket.emit("member_state_changed", membersAfterReplace); // emit to the sender
+  socket.on("player_solved_grid", async (roomId: string) => {
+    // give sender a point
+    await incrMemberScore(roomId, socket.id);
+    // set all members to not ready and get a new grid
+    await resetReadyAndGrid(roomId);
+    // give all members a new grid
+    const grid = await getGrid(roomId);
+    socket.to(roomId).emit("new_grid", grid);
+    socket.emit("new_grid", grid);
   });
 
   socket.on("leave_room", async (roomId: string) => {
