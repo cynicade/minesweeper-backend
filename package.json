@@ -16,17 +16,20 @@
     "socket.io-client": "^4.5.1",
     "ts-jest": "^28.0.5",
     "ts-node": "^10.8.1",
+    "typedoc": "^0.23.2",
+    "typedoc-plugin-rename-defaults": "^0.6.1",
     "typescript": "^4.7.3"
   },
   "dependencies": {
     "cors": "^2.8.5",
     "express": "^4.18.1",
     "redis": "^4.1.0",
-    "socket.io": "^4.5.1"
+    "socket.io": "^4.5.1",
+    "unique-names-generator": "^4.7.1"
   },
   "scripts": {
     "start": "NODE_ENV=prod node ./dist/main.js",
-    "dev": "NODE_ENV=dev npx nodemon ./src/main.ts",
+    "dev": "DEBUG=engine,socket.io* NODE_ENV=dev npx nodemon ./src/main.ts",
     "build": "npx tsc",
     "dockerize": "docker build . -t cynicade/minesweeper-backend",
     "test": "ENV_FILE=./.env.test jest"

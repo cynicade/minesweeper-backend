@@ -18,6 +18,7 @@ router.get("/members/:roomId", async (req, res) => {
     const data = await getAllMemberData(req.params.roomId);
     const membersArr: Array<IMember> = data.map((member: any) => ({
       name: member.name,
+      socketId: member.socketId,
       score: member.score,
       ready: member.ready === 0 ? false : true,
     }));

@@ -1,8 +1,8 @@
 import { createClient } from "redis";
-import { Difficulty } from "../types";
+import { Difficulty, IMember } from "../types";
 import { makeId, makeRandomName } from "../utils";
 
-export const client = createClient({
+export const client: ReturnType<typeof createClient> = createClient({
   url: process.env.REDIS_URL,
   // password: process.env.REDIS_PASSWORD,
 });
@@ -27,20 +27,25 @@ export async function addMemberToRoom(
     name,
     socketId,
     score: 0,
-    ready: 0,
+    ready: false,
   });
   return name;
 }
 
 // TODO: make proper type for return data
-export async function getAllMemberData(roomId: string): Promise<any> {
-  return await client.json.get(`room:${roomId}`, { path: ".members" });
+export async function getAllMemberData(
+  roomId: string
+): Promise<Array<IMember>> {
+  return (await client.json.get(`room:${roomId}`, {
+    path: ".members",
+  })) as unknown as Array<IMember>; // this is horrible, but the Redis library for node is horribly typed :')
 }
 
 export async function checkMembersReady(roomId: string): Promise<boolean> {
-  const data = await client.json.get(`room:${roomId}`, { path: ".members" });
-  console.log(data);
-  return true;
+  const members = await getAllMemberData(roomId);
+  return (
+    members.filter((member: IMember) => member.ready).length === members.length
+  );
 }
 
 export async function incrMemberScore(
@@ -74,16 +79,36 @@ export async function setMemeberReady(
 }
 
 export async function removeMemberFromRoom(roomId: string, socketId: string) {
-  const idxDirty: number | number[] = await client.json.arrIndex(
-    `room:${roomId}`,
-    ".members",
-    socketId
+  const members = await getAllMemberData(roomId);
+  // find the index of the member who left by their socket id
+  const idx = members.findIndex(
+    (member: IMember) => member.socketId === socketId
   );
-  let idx: number;
-  typeof idxDirty === "number" ? (idx = idxDirty) : (idx = idxDirty[0]);
-  await client.json.arrPop(`room:${roomId}`, ".members", idx);
+  if (idx !== -1) {
+    // if found, remove the member from the room
+    await client.json.arrPop(`room:${roomId}`, ".members", idx);
+    if ((await client.json.arrLen(`room:${roomId}`, ".members")) === 0)
+      // if this was the last member in the room (meaning the room is now empty), delete the room
+      await client.json.del(`room:${roomId}`);
+  }
+}
+
+export async function replaceMemberArray(
+  roomId: string,
+  members: Array<IMember>
+): Promise<Array<IMember>> {
+  const difficulty = (await client.json.get(`room:${roomId}`, {
+    path: ".difficulty",
+  })) as unknown as Difficulty; // this is horrible, but the Redis library for node is horribly typed :')
+
+  const updatedObject = JSON.stringify({ difficulty, members });
+
+  // Doesn't work otherwise...
+  await client.json.set(`room:${roomId}`, ".", JSON.parse(updatedObject));
+  return await getAllMemberData(roomId);
 }
 
 export async function roomExists(roomId: string): Promise<boolean> {
+  // .exists() returns 0 or 1, so coercing into a boolean makes it True|False
   return Boolean(await client.exists(`room:${roomId}`));
 }
