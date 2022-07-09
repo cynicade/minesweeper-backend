@@ -3,4 +3,5 @@ export default interface IMember {
   name: string;
   socketId: string;
   score: number;
+  lost: boolean;
 }

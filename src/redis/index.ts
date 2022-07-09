@@ -63,11 +63,11 @@ export async function addMemberToRoom(
     socketId,
     score: 0,
     ready: false,
+    lost: false,
   });
   return name;
 }
 
-// TODO: make proper type for return data
 export async function getAllMemberData(
   roomId: string
 ): Promise<Array<IMember>> {
@@ -129,7 +129,7 @@ export async function roomExists(roomId: string): Promise<boolean> {
 export async function resetReadyAndGrid(roomId: string) {
   const members = await getAllMemberData(roomId);
   const updatedMembers = members.map((member) => {
-    return { ...member, ready: false };
+    return { ...member, ready: false, lost: false };
   });
   const difficulty = (await client.json.get(`room:${roomId}`, {
     path: ".difficulty",
@@ -137,6 +137,23 @@ export async function resetReadyAndGrid(roomId: string) {
   const newGrid = makeGrid(difficulty);
 
   await updateRoom(roomId, updatedMembers, newGrid);
+}
+
+export async function setPlayerLost(
+  roomId: string,
+  socketId: string
+): Promise<boolean> {
+  const members = await getAllMemberData(roomId);
+  const updatedMembers = members.map((member) => {
+    if (member.socketId === socketId) return { ...member, lost: true };
+    else return member;
+  });
+  // if every player in the room has lost, reset the round and return true
+  if (updatedMembers.filter((member) => !member.lost).length === 0) {
+    await resetReadyAndGrid(roomId);
+    return true;
+  } else await updateRoom(roomId, updatedMembers);
+  return false;
 }
 
 export async function getGrid(roomId: string): Promise<IGrid> {

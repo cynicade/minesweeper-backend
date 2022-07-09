@@ -15,14 +15,8 @@ router.get("/members/:roomId", async (req, res) => {
   console.log(req.params.roomId);
   const exists = await roomExists(req.params.roomId);
   if (exists) {
-    const data = await getAllMemberData(req.params.roomId);
-    const membersArr: Array<IMember> = data.map((member: any) => ({
-      name: member.name,
-      socketId: member.socketId,
-      score: member.score,
-      ready: member.ready === 0 ? false : true,
-    }));
-    res.json({ members: membersArr }).status(200);
+    const members = await getAllMemberData(req.params.roomId);
+    res.json({ members }).status(200);
   } else res.sendStatus(404);
 });
 

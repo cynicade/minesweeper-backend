@@ -1,5 +1,4 @@
 import { Socket } from "socket.io";
-import { makeGrid } from "../utils";
 import {
   addMemberToRoom,
   createRoom,
@@ -8,6 +7,7 @@ import {
   incrMemberScore,
   removeMemberFromRoom,
   resetReadyAndGrid,
+  setPlayerLost,
   toggleMemberReady,
 } from "../redis";
 import { Difficulty } from "../types";
@@ -51,10 +51,28 @@ export function handleConnection(socket: Socket): void {
     await incrMemberScore(roomId, socket.id);
     // set all members to not ready and get a new grid
     await resetReadyAndGrid(roomId);
+    const members = await getAllMemberData(roomId);
+    socket.to(roomId).emit("member_state_changed", members);
+    socket.emit("member_state_changed", members);
+    socket.to(roomId).emit("round_end");
     // give all members a new grid
     const grid = await getGrid(roomId);
     socket.to(roomId).emit("new_grid", grid);
     socket.emit("new_grid", grid);
+  });
+
+  socket.on("player_lost", async (roomId: string) => {
+    const reset = await setPlayerLost(roomId, socket.id);
+    if (reset) {
+      const members = await getAllMemberData(roomId);
+      socket.to(roomId).emit("member_state_changed", members);
+      socket.emit("member_state_changed", members);
+      socket.to(roomId).emit("round_end");
+      socket.emit("round_end");
+      const grid = await getGrid(roomId);
+      socket.to(roomId).emit("new_grid", grid);
+      socket.emit("new_grid", grid);
+    }
   });
 
   socket.on("leave_room", async (roomId: string) => {
