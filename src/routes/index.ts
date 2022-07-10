@@ -5,6 +5,10 @@ import { makeGrid } from "../utils";
 
 export const router = Router();
 
+router.get("/ping", (req, res) => {
+  res.send(JSON.stringify({ message: "Pong!" })).status(200);
+});
+
 router.get("/checkRoom/:roomId", async (req, res) => {
   const result = await roomExists(req.params.roomId);
   if (result) res.sendStatus(200);
